@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nexus Command Center</title>
+    <style>
+        /* Dark Hacker / Terminal Aesthetic */
+        body {
+            background-color: #000000;
+            color: #00ff00;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 16px;
+            box-sizing: border-box;
+        }
+
+        .chat-container {
+            background-color: #0a0a0a;
+            border: 1px solid #00ff00;
+            width: 100%;
+            max-width: 680px;
+            padding: 24px;
+            box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+            box-sizing: border-box;
+        }
+
+        .header {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #00ff00;
+            border-bottom: 1px dashed #00ff00;
+            padding-bottom: 12px;
+            margin: 0;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .server-wrapper {
+            background-color: #000000;
+            border: 1px dashed #00ff00;
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding: 10px;
+            align-items: center;
+        }
+
+        .server-label {
+            color: #00ff00;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        select {
+            background-color: #000000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            width: 100%;
+            padding: 8px;
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: pointer;
+        }
+
+        select option {
+            background-color: #000000;
+            color: #00ff00;
+        }
+
+        .input-wrapper {
+            background-color: #000000;
+            border: 1px solid #00ff00;
+            display: flex;
+            margin-top: 20px;
+            padding: 10px;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            background: transparent;
+            border: none;
+            color: #00ff00;
+            width: 100%;
+            font-size: 1rem;
+            outline: none;
+            font-family: 'Courier New', Courier, monospace;
+            min-width: 140px;
+        }
+
+        input[type="text"]::placeholder {
+            color: #004400;
+        }
+
+        input[type="file"] {
+            color: #00ff00;
+            background: transparent;
+            border: none;
+            font-family: 'Courier New', Courier, monospace;
+            width: 230px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+
+        input[type="file"]::file-selector-button {
+            background-color: transparent;
+            color: #00ff00;
+            border: 1px dashed #00ff00;
+            padding: 4px 8px;
+            cursor: pointer;
+            font-family: 'Courier New', Courier, monospace;
+            margin-right: 10px;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background-color: #00ff00;
+            color: #000000;
+        }
+
+        button {
+            background-color: transparent;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 8px 16px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: 'Courier New', Courier, monospace;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+
+        button:hover {
+            background-color: #00ff00;
+            color: #000000;
+        }
+
+        .status {
+            font-size: 0.9rem;
+            color: #008800;
+            margin-top: 15px;
+            min-height: 20px;
+        }
+
+        .hint {
+            color: #006600;
+            font-size: 0.78rem;
+            line-height: 1.4;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 640px) {
+            .chat-container {
+                padding: 18px;
+            }
+
+            .server-wrapper,
+            .input-wrapper {
+                flex-wrap: wrap;
+            }
+
+            input[type="file"] {
+                width: 100%;
+            }
+
+            button {
+                width: 100%;
+                margin-top: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chat-container">
+        <h2 class="header">Buttercup Enterprise :: Server Uplink</h2>
+
+        <div class="server-wrapper">
+            <span class="server-label">SERVER:</span>
+            <select id="serverSelect" onchange="updateServerStatus()">
+                <option value="main">T1 Server</option>
+                <option value="snaps">Snaps Server</option>
+                <option value="t2">T2 Server</option>
+                <option value="t3">T3 Server</option>
+            </select>
+        </div>
+
+        <div class="hint">
+            To add more servers later, paste the new Discord webhook link inside the SERVER_LINKS section in the script.
+        </div>
+
+        <div class="input-wrapper">
+            <span style="padding-right: 0; color: #00ff00;">&gt;</span>
+            <input type="text" id="messageInput" placeholder="Enter command payload..." autocomplete="off">
+            <input type="file" id="imageInput" accept="image/*" title="Attach an image">
+            <button onclick="sendMessage()">EXECUTE</button>
+        </div>
+
+        <p class="status" id="statusText">System ready. T1 Server selected.</p>
+    </div>
+
+    <script>
+        /*
+            SERVER OPTIONS
+            --------------------------------------------------
+            Keep your T1 server in "main".
+            Current servers: T1, Snaps, T2, and T3.
+            To add another server later, add a new option in the dropdown
+            and add its matching webhook entry in SERVER_LINKS.
+        */
+        const SERVER_LINKS = {
+            main: {
+                name: "T1 Server",
+                webhook: "https://discord.com/api/webhooks/1501265697664401439/XPeZrc8ib5ijDMPAvp3ZDb17Uo28IjJCwsJ_O8snSet8ySTfD88RlbvilqmeQgTv86mA"
+            },
+            snaps: {
+                name: "Snaps Server",
+                webhook: "https://discord.com/api/webhooks/1501301941802635304/D-iVCsOken3FGo1s__rCuwnKN7cNDC3yS1fWc0a46u442cNeMPG5wv24GGSd0r2MFzgA"
+            },
+            t2: {
+                name: "T2 Server",
+                webhook: "https://discord.com/api/webhooks/1501651038309187615/Sg2agS-WXUNk7PQ--2m1r6CmhiUf0FfymVX-INHsgjCJy89zKIVX5X8XXs2e0XwdQwAY"
+            },
+            t3: {
+                name: "T3 Server",
+                webhook: "https://discord.com/api/webhooks/1501651908107042877/_NnC2ArscQ1aaue8VBmp-Ca9xJBtu-uOXlqmcu9ZK_xaE5uLmTBFsldVkKG1IZAqQvfS"
+            }
+        };
+
+        function getSelectedServer() {
+            const selectedKey = document.getElementById('serverSelect').value;
+            return SERVER_LINKS[selectedKey];
+        }
+
+        function updateServerStatus() {
+            const statusText = document.getElementById('statusText');
+            const selectedServer = getSelectedServer();
+
+            if (!selectedServer.webhook) {
+                statusText.innerText = `[WAIT] ${selectedServer.name} selected, but no webhook added yet.`;
+                statusText.style.color = "#ffaa00";
+                return;
+            }
+
+            statusText.innerText = `[OK] ${selectedServer.name} selected.`;
+            statusText.style.color = "#00ff00";
+        }
+
+        async function sendMessage() {
+            const inputField = document.getElementById('messageInput');
+            const fileInput = document.getElementById('imageInput');
+            const statusText = document.getElementById('statusText');
+            const selectedServer = getSelectedServer();
+
+            const messageText = inputField.value.trim();
+            const imageFile = fileInput.files[0];
+
+            if (!selectedServer.webhook) {
+                statusText.innerText = `[ERROR] No webhook saved for ${selectedServer.name} yet.`;
+                statusText.style.color = "#ff0000";
+                return;
+            }
+
+            if (!messageText && !imageFile) {
+                statusText.innerText = "[ERROR] Empty payload detected.";
+                statusText.style.color = "#ff0000";
+                return;
+            }
+
+            statusText.innerText = `[SYS] Transmitting payload to ${selectedServer.name}...`;
+            statusText.style.color = "#00ff00";
+
+            try {
+                const formData = new FormData();
+                formData.append("username", "Buttercup Enterprise");
+
+                if (messageText) {
+                    formData.append("content", messageText);
+                }
+
+                if (imageFile) {
+                    formData.append("file", imageFile);
+                }
+
+                const response = await fetch(selectedServer.webhook, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (response.ok) {
+                    statusText.innerText = `[OK] Payload delivered to ${selectedServer.name}.`;
+                    statusText.style.color = "#00ff00";
+                    inputField.value = "";
+                    fileInput.value = "";
+                } else {
+                    statusText.innerText = `[ERROR] Transmission failed: Code ${response.status}`;
+                    statusText.style.color = "#ff0000";
+                }
+            } catch (error) {
+                statusText.innerText = "[FATAL] Network error. Check connection.";
+                statusText.style.color = "#ff0000";
+            }
+        }
+
+        document.getElementById('messageInput').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+
+</body>
+</html>
